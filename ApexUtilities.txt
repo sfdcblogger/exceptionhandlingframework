@@ -1,0 +1,146 @@
+public class PRFT_ApexUtilities {
+
+    @TestVisible
+    private static final Boolean isSandboxBool = [SELECT IsSandbox FROM Organization LIMIT 1].IsSandbox;
+    
+    public static Boolean isSandbox() {
+    return PRFT_ApexUtilities.isSandboxBool;
+}
+    
+    /**
+* @description the environment
+* @return either 'production', 'debug' (in sandbox) or 'test'
+*/
+public static string getEnvironment() {
+    string environment = PRFT_ApexConstants.PRODUCTION_CATEGORY;
+
+    if ( PRFT_ApexConstants.UNIT_TEST_RUNNING  ) {
+        environment = PRFT_ApexConstants.TESTING_CATEGORY;
+    } else if (PRFT_ApexUtilities.isSandbox() ) {
+        environment = PRFT_ApexConstants.SANDBOX_CATEGORY;
+    }
+
+    return environment;
+} // end of getEnvironment
+   
+    
+    public static string normalizeString(String datum, Boolean dotrim) {
+        string result = PRFT_ApexConstants.EmptyString;
+        if ( !string.isBlank(datum) ) {
+            if ( dotrim ) {
+                result = datum.trim();
+            } else {
+                result = datum;
+            }
+        }
+        
+        return result;
+    } // end of normalizeString
+    
+    
+    
+    /**
+ *
+ * @description pop the stack to get to the right level of the stack
+ *
+ * @param strack trace
+ * @return second level of the stack
+ */
+public static string popStack(string trace) {
+    system.debug('trace'+trace);
+    string popTrace = '';
+
+    if ( !string.isBlank(trace) ) {
+        popTrace = trace.substringAfter('\n');
+        popTrace = popTrace.substringAfter('\n');
+        if ( string.isBlank(popTrace) ) {
+            popTrace = trace;
+        }
+    }
+    system.debug('popTrace'+trace);
+    return popTrace;
+} // end of popStack
+
+
+
+/**
+ *  @description get the executing class name from an stack trace
+ *
+ * @param string stack trace
+ * @return string class name
+ */
+public static String getExecutingClassName(String line) {
+    system.debug('line'+line);
+    String result = PRFT_ApexConstants.EmptyString;
+    if ( !string.isblank(line) ) {
+        final string tag = 'Class.';
+        if (line.startsWith(tag)) {
+            line = line.substringAfter(tag);
+            if ( !string.isblank(line) ) {
+                result = line.substringBefore(':').substringBeforeLast('.');
+            }
+        }
+    }
+    system.debug('result'+result);
+    return result;
+} // end of getExecutingClassName
+
+
+/**
+ *  @description get the governor limits in a transaction
+ *
+ * @return string transactionLimits
+ */
+public static String getTransactionGovernorLimits() {
+    //Governer Limit of executingQuery 
+    String queryLimit = '1. SOQL Queries used / SOQL Queries allowed: ' + Limits.getQueries() + '/' + Limits.getLimitQueries();
+    String dmlLimit = '2. Number of records queried so far /  Number allowed: ' + Limits.getDmlRows() + '/' + Limits.getLimitDmlRows();
+    String dmlStat = '3. Number of DML statements used so far / Number allowed: ' +  Limits.getDmlStatements() + '/' + Limits.getLimitDmlStatements();   
+    String cpuTime = '4. Amount of CPU time (in ms) used so far / CPU usage time (in ms) allowed: ' + Limits.getCpuTime() + '/' + Limits.getLimitCpuTime();
+    return String.format('{0}\n{1}\n{2}\n{3}',new List<String>{queryLimit, dmlLimit,dmlStat,cpuTime});
+} // end of getTransactionGovernorLimits
+
+
+/**
+ *  @description get the executing method name from an stack trace
+ *
+ * @param line from the stack trace
+ * @return method name
+ */
+public static String getExecutingMethod(String line) {
+    
+    String result = PRFT_ApexConstants.EmptyString;
+    if ( !string.isblank(line) ) {
+        line = line.substringBefore(':');
+        if ( !string.isblank(line) ) {
+            result = line.substringAfterLast('.');
+        }
+    }
+    
+    return result;
+} // end of getExecutingMethod
+
+
+/**
+ *  @description get the executing method name from an stack trace
+ *
+ * @param line from the stack trace
+ * @return method name
+ */
+public static String getExecutingTriggerName(String line) {
+    
+    String result = PRFT_ApexConstants.EmptyString;
+    if ( !string.isblank(line) ) {
+        String[] lines = line.split('\n');
+        for (Integer i = lines.size()-1; i >= 0; i--) {
+            if (lines[i].startsWith('Trigger.')){
+                result =  lines[i].subStringBetween('Trigger.',':');
+                break;
+            }
+        }
+    }
+    system.debug('getExecutingTriggerName'+result);
+    return result;
+} // end of getExecutingMethod
+    
+}

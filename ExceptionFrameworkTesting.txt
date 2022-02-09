@@ -1,0 +1,13 @@
+public class PRFT_ExceptionFrameworkTesting {
+
+    
+    public static void testingMethod(){
+        try{
+            Integer num1  = 10;
+            Integer num2  = 0;
+            Integer num3 = num1 / num2;
+        }catch(Exception ex){
+          PRFT_ApexLogger.log(PRFT_ApexConstants.LOG_FRAMWORK,ex);
+        }
+    }
+}

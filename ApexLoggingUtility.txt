@@ -1,0 +1,103 @@
+public with sharing class PRFT_ApexLoggingUtility {
+
+    public PRFT_ApexLoggingUtility() {
+
+    }
+    
+    @testVisible private static List<Log_Event__e> logEvents = new List<Log_Event__e>();
+    
+    /**
+     *
+     * @description used to determine if logging is enabled for the Org
+     * @param String message
+     */
+    public static Boolean isLoggingEnabled() {
+        String currentEnvironment = PRFT_ApexUtilities.getEnvironment();
+        system.debug('currentEnvironment'+currentEnvironment);
+        system.debug(checkLoggingConfig(currentEnvironment));
+        return checkLoggingConfig(currentEnvironment);
+        
+    } // end of isLoggingEnabled
+    
+    
+    /**
+     *
+     * @description check the logging config metadata, if logging is enabled
+     *
+     * @param current environment
+     * @return boolean
+     */
+    public static Boolean checkLoggingConfig(string currentEnvironment) {
+        system.debug(PRFT_ApexUtilities.normalizeString(currentEnvironment,true));
+        List<Logging_Config__mdt> loggingConfigList    =   [SELECT DeveloperName,MasterLabel,isLoggingEnabled__c FROM Logging_Config__mdt WHERE DeveloperName=:PRFT_ApexUtilities.normalizeString(currentEnvironment,true)];
+        if(!loggingConfigList.isEmpty()){
+            return loggingConfigList[0].isLoggingEnabled__c;
+        }
+        return false;
+    } // end of popStack
+    
+    
+    
+    /**
+     *  @description convience routine to log exceptions via ApplicationLog
+     *
+     * @param excp Exception
+     */
+    public static void log(String applicationName,Exception excp) {
+        if (excp != null) {
+
+            String trace = PRFT_ApexUtilities.popStack(new DmlException().getStackTraceString()),
+            className = PRFT_ApexUtilities.getExecutingClassName(trace),
+            methodName = PRFT_ApexUtilities.getExecutingMethod(trace),
+            triggerName =    PRFT_ApexUtilities.getExecutingTriggerName(excp.getStackTraceString()),
+            logMsg = '+++ [' + className + '] [' + methodName + '] ' + String.valueof(excp.getMessage());
+
+            system.debug('trace'+trace);
+            system.debug('logMsg'+logMsg);
+            system.debug('className'+className);
+            system.debug('methodName'+methodName);
+
+            Log_Event__e logEventRecord         =   new Log_Event__e();
+            logEventRecord.Application_Name__c      =   PRFT_ApexUtilities.normalizeString(applicationName,true);
+            logEventRecord.Class_Name__c            =   PRFT_ApexUtilities.normalizeString(className,true);
+            logEventRecord.Method_Name__c           =   PRFT_ApexUtilities.normalizeString(methodName,true);
+            logEventRecord.Exception_Type__c        =   PRFT_ApexUtilities.normalizeString(excp.getTypeName(),true);
+            logEventRecord.Running_User_Id__c       =   UserInfo.getUserId();
+            logEventRecord.Error_Message__c         =   PRFT_ApexUtilities.normalizeString(excp.getMessage(),true);
+            logEventRecord.Exception_Description__c =   excp.getStackTraceString();
+            logEventRecord.Govt_Limit_in_Executing_Code__c      =   PRFT_ApexUtilities.getTransactionGovernorLimits();
+            logEventRecord.Line_Number__c                       = String.valueof(excp.getLineNumber());
+            logEventRecord.Trigger_Name__c          =   PRFT_ApexUtilities.normalizeString(triggerName,true);
+
+            if(excp.getTypeName() == 'System.DmlException'){
+                logMsg +=  '[' + 'Records failed to insert/update: ' +excp.getNumDml()+']' ;
+                system.debug('logMsg '+logMsg);
+                for (Integer i = 0; i < excp.getNumDml(); i++) {
+                    // Process exception here
+                    System.debug(excp.getDmlMessage(i));
+                    System.debug(excp.getDmlFields(i)); 
+                }
+            }
+
+            logEventRecord.Exception_Details__c           = logMsg;
+
+            logEvents.add(logEventRecord);
+
+            List<Database.SaveResult> results = EventBus.publish(logEvents);
+ 
+            // Inspect publishing result for each event
+            for (Database.SaveResult sr : results) {
+                if (sr.isSuccess()) {
+                    System.debug('Successfully published event.');
+                } else {
+                    for(Database.Error err : sr.getErrors()) {
+                        System.debug('Error returned: ' +
+                                    err.getStatusCode() +
+                                    ' - ' +
+                                    err.getMessage());
+                    }
+                }       
+            }
+        }
+    } // end of log
+}

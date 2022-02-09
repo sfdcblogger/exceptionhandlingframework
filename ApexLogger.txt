@@ -1,0 +1,14 @@
+public class PRFT_ApexLogger {
+
+    /**
+* @description log
+*
+* @param String applicationName,Exception excp,
+* @return void
+*/
+    public static void log(String applicationName,Exception excp) {
+        if(PRFT_ApexLoggingUtility.isLoggingEnabled()){
+            PRFT_ApexLoggingUtility.log(applicationName,excp);
+        }
+    }// end of log
+}

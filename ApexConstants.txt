@@ -1,0 +1,26 @@
+public with sharing class PRFT_ApexConstants {
+
+     /************************************************************************************
+    *
+    * Misc Strings
+    ************************************************************************************/
+    
+    public static final String emptyString = '';
+    public static final String ColonDelimiter = ':';
+    // use by the custom MDT for configuration categories
+    public static final string SANDBOX_CATEGORY = 'sandbox';
+    public static final string PRODUCTION_CATEGORY = 'production';
+    public static final string TESTING_CATEGORY = 'unit_testing';
+    public static final String DEBUG_LEVEL_ERROR = 'Error';
+    public static final String DEBUG_LEVEL_DEBUG = 'Debug';
+    public static final String DEBUG_LEVEL_WARN = 'Warning';
+    public static final String DEBUG_LEVEL_INFO = 'Info';
+    public static final String LOG_FRAMWORK = 'Prficient Log Framework';
+
+
+    /************************************************************************************
+    *
+    * Set the is test running ( instead of checking multiple times in code -- waste of a function call)
+    ************************************************************************************/
+    @testvisible public final static Boolean UNIT_TEST_RUNNING = Test.isRunningTest();
+}
